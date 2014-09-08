@@ -151,23 +151,6 @@ struct shash_desc {
 		crypto_shash_descsize(ctx)] CRYPTO_MINALIGN_ATTR; \
 	struct shash_desc *shash = (struct shash_desc *)__##shash##_desc
 
-/**
- * struct shash_alg - synchronous message digest definition
- * @init: see struct ahash_alg
- * @update: see struct ahash_alg
- * @final: see struct ahash_alg
- * @finup: see struct ahash_alg
- * @digest: see struct ahash_alg
- * @export: see struct ahash_alg
- * @import: see struct ahash_alg
- * @setkey: see struct ahash_alg
- * @digestsize: see struct ahash_alg
- * @statesize: see struct ahash_alg
- * @descsize: Size of the operational state for the message digest. This state
- * 	      size is the memory size that needs to be allocated for
- *	      shash_desc.__ctx
- * @base: internally used
- */
 struct shash_alg {
 	int (*init)(struct shash_desc *desc);
 	int (*update)(struct shash_desc *desc, const u8 *data,
