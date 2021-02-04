@@ -206,7 +206,11 @@ repack_ramdisk() {
     $bin/mkbootfs $ramdisk > ramdisk-new.cpio;
   else
     cd $ramdisk;
-    find . | cpio -H newc -o > $home/ramdisk-new.cpio;
+    if [ -f "ramdisk.cpio" ]; then
+      mv ramdisk.cpio $home/ramdisk-new.cpio;
+    else
+      find . | cpio -H newc -o > $home/ramdisk-new.cpio;
+    fi;
   fi;
   test $? != 0 && packfail=1;
 
