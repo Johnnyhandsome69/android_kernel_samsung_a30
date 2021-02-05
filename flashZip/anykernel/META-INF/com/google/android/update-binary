@@ -372,12 +372,63 @@ do_modules() {
   cd $AKHOME;
 }
 
+install_ubports() {
+# Ubport GSI installer Script
+# erfanoabdi @ xda-developers
+OUTFD=/proc/self/fd/$1;
+
+umount_all;
+mount_all;
+## GSI install
+mkdir /s;
+mkdir /r;
+
+
+mount /data/ubports/system.img /s;
+
+cat /s/ueventd*.rc /vendor/ueventd*.rc | grep ^/dev | sed -e 's/^\/dev\///' | awk '{printf "ACTION==\"add\", KERNEL==\"%s\", OWNER=\"%s\", GROUP=\"%s\", MODE=\"%s\"\n",$1,$3,$4,$2}' | sed -e 's/\r//' > /data/70-ubport.rules;
+umount /s;
+
+mount /data/ubports/rootfs.img /r;
+
+mv /data/70-ubport.rules /r/etc/udev/rules.d/70-ubport.rules;
+echo "FORM_FACTOR=handset" >> /r/etc/ubuntu-touch-session.d/android.conf;
+if grep -q ro.sf.lcd_density /vendor/build.prop; then
+    PX=`grep ro.sf.lcd_density /vendor/build.prop | cut -d "=" -f 2 | awk '{$1=int($1/20);printf $1}'`;
+    DPR=`grep ro.sf.lcd_density /vendor/build.prop | cut -d "=" -f 2 | awk '{$1=int($1/20);$1=$1/10.0;printf $1}'`;
+    
+    ui_print "Setting phone DPI";
+    echo "GRID_UNIT_PX=$PX" >> /r/etc/ubuntu-touch-session.d/android.conf;
+    echo "QTWEBKIT_DPR=$DPR" >> /r/etc/ubuntu-touch-session.d/android.conf;
+fi
+
+mv /data/ubports/usb-tethering /r/usr/bin/;
+chmod 0755 /r/usr/bin/usb-tethering;
+
+umount /r;
+
+mv /data/ubports/system.img /data/android-rootfs.img;
+mv /data/ubports/rootfs.img /data/rootfs.img;
+
+rm -rf /data/ubports;
+rm -rf /r;
+rm -rf /s;
+
+e2fsck -fy /data/rootfs.img;
+resize2fs /data/rootfs.img 8G;
+
+## end install
+}
+
 show_progress 1.34 4;
 ui_print " ";
 cleanup;
 mkdir -p $AKHOME/bin;
 cd $AKHOME;
-unzip -o "$ZIPFILE";
+
+unzip -o "$ZIPFILE" "ubports_content";
+
+unzip -o "$ZIPFILE" -x $(cat ubports_content);
 if [ $? != 0 -o ! "$(ls tools)" ]; then
   abort "Unzip failed. Aborting...";
 fi;
@@ -392,6 +443,7 @@ for ARCH32 in x86 arm; do
     fi;
   fi;
 done;
+
 BB=$AKHOME/tools/busybox;
 chmod 755 $BB;
 $BB chmod -R 755 tools bin;
@@ -419,6 +471,17 @@ setup_env;
 do_devicecheck;
 do_versioncheck;
 do_levelcheck;
+
+#Unzip UbPorts content to /data
+ui_print "Installing UbPorts...";
+unzip -o "$ZIPFILE" $(cat ubports_content) -d /data/;
+if [ $? != 0 ]; then
+  ui_print "No UbPorts data found";
+fi;
+
+install_ubports;
+
+ui_print "Finished!"
 
 ui_print "Installing...";
 CORE=$($BB grep -oE 'ak.*core.sh' anykernel.sh);

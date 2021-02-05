@@ -2,6 +2,8 @@
 #
 # Custom build script for Eureka kernels by Chatur27 and Gabriel260 @Github - 2020
 #
+# Updated by arpio
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -14,125 +16,42 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+KERNEL_SRC_DIR=$(pwd)
+KERNEL_OUT_DIR=$KERNEL_SRC_DIR/.out
 
-# Set default directories
-ROOT_DIR=$(pwd)
-# OUT_DIR=$ROOT_DIR/out
-KERNEL_DIR=$ROOT_DIR
-DTB_DIR=arch/arm64/boot/dts/exynos/dtbo
-DTBO_DIR=arch/arm64/boot/dts/exynos/dtbo
-
-# Set default kernel variables
-PROJECT_NAME="Halium Kernel"
 CORES=$(nproc --all)
-ZIPNAME=A205_Halium9_
-GCC_ARM64_FILE=aarch64-linux-gnu-
-GCC_ARM32_FILE=arm-linux-gnueabi-
-DEFCONFIG=a20_halium_defconfig
 
-# Export commands
-export VERSION=$DEFAULT_NAME
-export ARCH=arm64
-export CROSS_COMPILE=../toolchain/bin/$GCC_ARM64_FILE
-export CROSS_COMPILE_ARM32=../toolchain/bin/$GCC_ARM32_FILE
-
-# Get date and time
-DATE=$(date +"%m-%d-%y")
+DEFCONFIG=halium-a30_defconfig
 BUILD_START=$(date +"%s")
-
-################### Executable functions #######################
-CLEAN_SOURCE()
+BUILD_END=$(date +"%s")
+ZIPNAME=Halium
+#Functions
+PRINT_OUT()
 {
-	echo "*****************************************************"
-	echo " "
-	echo "              Cleaning kernel source"
-	echo " "
-	echo "*****************************************************"
-	make clean
-	CLEAN_SUCCESS=$?
-	if [ $CLEAN_SUCCESS != 0 ]
-		then
-			echo " Error: make clean failed"
-			exit
-	fi
-
-	make mrproper
-	MRPROPER_SUCCESS=$?
-	if [ $MRPROPER_SUCCESS != 0 ]
-		then
-			echo " Error: make mrproper failed"
-			exit
-	fi
-	
-	if [ -e "flashZip/anykernel/Image" ]
-	then
-	  {
-	     rm $DTB_DIR/*.dtb
-	     rm $DTBO_DIR/*.dtbo
-	     rm -rf flashZip/anykernel/Image
-#	     rm -rf flashZip/anykernel/dtbo.img
-	  }
-	fi
-	sleep 1	
+	echo -e "[$(date +%H:%M:%S)]" '\t'  $1
 }
 
-BUILD_KERNEL()
+COPY_DEFCONFIG()
 {
-	echo "*****************************************************"
-	echo "           Building kernel for $DEVICE_Axxx          "
-	export ANDROID_MAJOR_VERSION=$ANDROID
-	export LOCALVERSION=-$VERSION
-	make  $DEFCONFIG
-	make -j$CORES
-	sleep 1	
+	read -r -p "Copy .config to defconfig? [Y/n] " input
+    case $input in
+        [yY][eE][sS]|[yY])
+    cp -rf $KERNEL_OUT_DIR/.config $KERNEL_SRC_DIR/arch/arm64/configs/$DEFCONFIG
+
+    ;;
+        [nN][oO]|[nN])
+		PRINT_OUT " "
+    	;;
+        *)
+    PRINT_OUT "Invalid input..."
+    ;;
+    esac
 }
 
-AUTO_TOOLCHAIN()
+ADD_VERSION()
 {
-	     echo " "
-	     echo "Using Gcc v4.9 toolchain"
-	     echo " "
-	     GCC_ARM64_FILE=aarch64-linux-android-
-	     GCC_ARM32_FILE=arm-linux-gnueabi-
-	     export CROSS_COMPILE=../toolchain/bin/$GCC_ARM64_FILE
-	     export CROSS_COMPILE_ARM32=../toolchain/bin/$GCC_ARM32_FILE
-}
-
-ZIPPIFY()
-{
-	# Make Eureka flashable zip
-	
-	if [ -e "arch/$ARCH/boot/Image" ]
-	then
-	{
-		echo -e "*****************************************************"
-		echo -e "                                                     "
-		echo -e "       Building Eureka anykernel flashable zip       "
-		echo -e "                                                     "
-		echo -e "*****************************************************"
-		
-		# Copy Image and dtbo.img to anykernel directory
-		cp -f arch/$ARCH/boot/Image flashZip/anykernel/Image
-#		cp -f arch/$ARCH/boot/dtbo.img flashZip/anykernel/dtbo.img
-		
-		# Go to anykernel directory
-		cd flashZip/anykernel
-		zip -r9 $ZIPNAME * -x .git README.md *placeholder
-#		zip -r9 $ZIPNAME META-INF modules patch ramdisk tools anykernel.sh Image dtbo.img version
-		chmod 0777 $ZIPNAME
-		# Change back into kernel source directory
-		cd ..
-		sleep 1
-		cd ..
-		sleep 1
-	}
-	fi
-}
-
-ENTER_VERSION()
-{
-	# Enter kernel revision for this build.
-	read -p "Please type kernel version without R (E.g: 4.7) : " rev;
+# Enter kernel revision for this build.
+	read -p "Please type kernel version : " rev;
 	if [ "${rev}" == "" ]; then
 		echo " "
 		echo "     Using '$REV' as version"
@@ -142,67 +61,172 @@ ENTER_VERSION()
 		echo "     Version = $REV"
 	fi
 	sleep 2
+
+	VERSION="v"$REV
+	ZIPNAME=$ZIPNAME"_"$REV".zip"
+	export LOCALVERSION=_$VERSION
 }
 
-RENAME()
-{
-	# Give proper name to kernel and zip name
-	ZIPNAME=$ZIPNAME"_"$TYPE"_"$REV".zip"
-}
-
-DISPLAY_ELAPSED_TIME()
-{
-	# Find out how much time build has taken
+PRINT_BUILD_TIME(){
 	BUILD_END=$(date +"%s")
 	DIFF=$(($BUILD_END - $BUILD_START))
-
-	BUILD_SUCCESS=$?
-	if [ $BUILD_SUCCESS != 0 ]
-		then
-			echo " Error: Build failed in $(($DIFF / 60)) minute(s) and $(($DIFF % 60)) seconds $reset"
-			exit
+	if [ $1 !=0 ]; then
+		echo -e "\e[1;41m \e[1;97m ***Build failed*** \e[0m"
+		echo -e "\e[1;41m \e[1;97m Total build time:   $(($DIFF / 60)) minute(s) and $(($DIFF % 60)) seconds \e[0m \e[0m"
+	else
+		echo -e "\e[1;42m \e[1;97m ***Build completed*** \e[0m"
+		echo -e "\e[1;42m \e[1;97m Total build time:   $(($DIFF / 60)) minute(s) and $(($DIFF % 60)) seconds \e[0m \e[0m"
 	fi
+	COPY_DEFCONFIG
+	exit
+}
+
+CREATE_ZIP(){
+	PRINT_OUT "Create ZIP file to flash in TWRP"
 	
-	echo -e "                     Build completed in $(($DIFF / 60)) minute(s) and $(($DIFF % 60)) seconds $reset"
+	rsync -Pa $KERNEL_SRC_DIR/flashZip $KERNEL_OUT_DIR/
+	rsync -Pa $KERNEL_OUT_DIR/arch/arm64/boot/Image $KERNEL_OUT_DIR/flashZip/anykernel/
+	rsync -Pa $KERNEL_OUT_DIR/arch/arm64/boot/dtbo.img $KERNEL_OUT_DIR/flashZip/anykernel/
+
+	rsync -Pa $(dirname $(dirname $(realpath $0)) )/rootfs.img $KERNEL_OUT_DIR/flashZip/anykernel/ubports/
+	rsync -Pa $(dirname $(dirname $(realpath $0)) )/system.img $KERNEL_OUT_DIR/flashZip/anykernel/ubports/
+
+	cd $KERNEL_OUT_DIR/flashZip/anykernel
+	7z a $ZIPNAME *
+	chmod 0777 $ZIPNAME
+	cd $KERNEL_SRC_DIR
 	sleep 1
 }
 
-COMMON_STEPS()
+EXPORT_VARS()
 {
-	echo "*****************************************************"
-	echo "                                                     "
-	echo "        Starting compilation of $DEVICE_Axxx kernel  "
-	echo "                                                     "
-	echo " Defconfig = $DEFCONFIG                              "
-	echo "                                                     "
-	echo "*****************************************************"
-	RENAME
-	sleep 1
-	echo " "	
-	BUILD_KERNEL
-	echo " "
-	sleep 1
-	ZIPPIFY
-	sleep 1
-	echo " "
-	DISPLAY_ELAPSED_TIME
-	echo " "
-	echo "                 *****************************************************"
-	echo "*****************                                                     *****************"
-	echo "                      build finished          "
-	echo "*****************                                                     *****************"
-	echo "                 *****************************************************"
+	export ARCH=arm64
+	export CROSS_COMPILE=$(dirname $(dirname $(realpath $0)) )/toolchain/bin/aarch64-linux-gnu-
+	export KBUILD_BUILD_USER=arpio
+	export KBUILD_BUILD_HOST=workstation
 }
 
+BUILD_KERNEL()
+{
+	clear
+	PRINT_OUT "Starting build process..."
+	BUILD_START=$(date +"%s")
+	make O=$KERNEL_OUT_DIR $DEFCONFIG
 
-#################################################################
+	read -r -p "Run xconfig before build? [Y/n] " input
+    case $input in
+        [yY][eE][sS]|[yY])
+    make xconfig O=$KERNEL_OUT_DIR
+    COPY_DEFCONFIG
+    BUILD_START=$(date +"%s")
+    make -j$CORES O=$KERNEL_OUT_DIR
+    BUILD_STATE=$?
+	CREATE_ZIP
+	PRINT_BUILD_TIME $BUILD_STATE
+    ;;
+        [nN][oO]|[nN])
+	BUILD_START=$(date +"%s")
+	make -j$CORES O=$KERNEL_OUT_DIR
+	BUILD_STATE=$?
+	CREATE_ZIP
+	PRINT_BUILD_TIME $BUILD_STATE
+    	;;
+        *)
+    PRINT_OUT "Invalid input..."
+    ;;
+    esac
+}
 
+REBUILD_KERNEL()
+{
+	clear
+	PRINT_OUT "Rebuilding Kernel..."
+	BUILD_START=$(date +"%s")
+	make -j$CORES O=$KERNEL_OUT_DIR
+	BUILD_STATE=$?
+	CREATE_ZIP
+	PRINT_BUILD_TIME $BUILD_STATE
+}
 
-###################### Script starts here #######################
+SELECT_BUILD_TYPE()
+{
+	echo "************************************";
+	echo "	Select option                     ";
+	echo "************************************";
+	echo " "
+	echo "  1. Clean build";
+	echo " "
+	echo "  2. Rebuild after errors";
+	echo " "
+	echo "  3. Run xconfig";
+	echo " "
+	echo "  4. Clean source tree";
+	echo " "
+	read -n 1 -p "Please select: " -s build;
+	echo -e '\n'
+	case ${build} in
+		1)
+		   {
+				if [ -d $KERNEL_OUT_DIR ]; then
+			        PRINT_OUT "Removing build directory: $KERNEL_OUT_DIR"
+			        rm -r $KERNEL_OUT_DIR
+			        sleep 1
+			        PRINT_OUT "Creating new build firectory: $KERNEL_OUT_DIR"
+			        mkdir $KERNEL_OUT_DIR
+			    else
+			        PRINT_OUT "Creating build directory: $KERNEL_OUT_DIR"
+			        mkdir $KERNEL_OUT_DIR
+			    fi
 
-AUTO_TOOLCHAIN
-CLEAN_SOURCE
-clear
-ENTER_VERSION
-clear
-COMMON_STEPS
+			    BUILD_KERNEL
+		   };;
+		2)
+		   {
+			   	if [ -d $KERNEL_OUT_DIR ]; then
+				        REBUILD_KERNEL
+				    else
+				        PRINT_OUT "Build directory does not exist: $KERNEL_OUT_DIR"
+				        exit
+				fi
+		   };;
+
+		3)
+		   {
+			   	if [ -d $KERNEL_OUT_DIR ]; then
+				    PRINT_OUT "Removing build directory: $KERNEL_OUT_DIR"
+				    rm -r $KERNEL_OUT_DIR
+				    sleep 1
+				    PRINT_OUT "Creating new build firectory: $KERNEL_OUT_DIR"
+				    mkdir $KERNEL_OUT_DIR
+
+				    make O=$KERNEL_OUT_DIR $DEFCONFIG
+				    make xconfig O=$KERNEL_OUT_DIR $DEFCONFIG
+				else
+				    PRINT_OUT "Creating build directory: $KERNEL_OUT_DIR"
+				    mkdir $KERNEL_OUT_DIR
+
+				    make O=$KERNEL_OUT_DIR $DEFCONFIG
+				    make xconfig O=$KERNEL_OUT_DIR $DEFCONFIG
+				fi
+		   };;
+
+		4)
+		   {
+			   	make clean
+			   	make mrproper
+		   };;
+		*)
+		   {
+			PRINT_OUT "Invalid option. Exiting..."
+			sleep 2
+			exit 1
+		   };;
+	esac
+}
+
+#Start script
+EXPORT_VARS
+
+ADD_VERSION
+
+SELECT_BUILD_TYPE
