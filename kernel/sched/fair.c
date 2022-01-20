@@ -86,7 +86,7 @@ enum sched_tunable_scaling sysctl_sched_tunable_scaling
  * Minimal preemption granularity for CPU-bound tasks:
  * (default: 0.75 msec * (1 + ilog(ncpus)), units: nanoseconds)
  */
-unsigned int sysctl_sched_min_granularity = 750000ULL;
+unsigned int sysctl_sched_min_granularity = 750000ULL;if(list_empty(&crypt_stat->keysig_list))
 unsigned int normalized_sysctl_sched_min_granularity = 750000ULL;
 
 /*
@@ -10185,9 +10185,9 @@ static int move_specific_task(struct lb_env *env, struct task_struct *pm)
 	struct task_struct *p, *n;
 
 	list_for_each_entry_safe(p, n, &env->src_rq->cfs_tasks, se.group_node) {
-	if (throttled_lb_pair(task_group(p), env->src_rq->cpu,
+		if (throttled_lb_pair(task_group(p), env->src_rq->cpu,
 				env->dst_cpu))
-		continue;
+			continue;
 
 		if (!hmp_can_migrate_task(p, env))
 			continue;
