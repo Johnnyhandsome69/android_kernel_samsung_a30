@@ -1166,8 +1166,10 @@ static int s2mu106_led_remove(struct platform_device *pdev)
 {
 	device_remove_file(flash_dev, &dev_attr_rear_flash);
 	device_remove_file(flash_dev, &dev_attr_rear_torch_flash);
+#ifdef CONFIG_VIDEO_EXYNOS_FIMC_IS2
 	device_destroy(camera_class, 0);
 	class_destroy(camera_class);
+#endif
 	mutex_destroy(&g_fled_data->lock);
 	return 0;
 }
