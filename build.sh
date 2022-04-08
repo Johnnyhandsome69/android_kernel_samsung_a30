@@ -84,12 +84,10 @@ PRINT_BUILD_TIME(){
 CREATE_ZIP(){
 	PRINT_OUT "Create ZIP file to flash in TWRP"
 	
-	rsync -Pa $KERNEL_SRC_DIR/flashZip $KERNEL_OUT_DIR/
-	rsync -Pa $KERNEL_OUT_DIR/arch/arm64/boot/Image $KERNEL_OUT_DIR/flashZip/anykernel/
-	rsync -Pa $KERNEL_OUT_DIR/arch/arm64/boot/dtbo.img $KERNEL_OUT_DIR/flashZip/anykernel/
+	cp -rf $KERNEL_SRC_DIR/flashZip $KERNEL_OUT_DIR/flashZip
+	cp -f $KERNEL_OUT_DIR/arch/arm64/boot/Image $KERNEL_OUT_DIR/flashZip/anykernel/Image
+	cp -f $HOME/dtbo.img $KERNEL_OUT_DIR/flashZip/anykernel/dtbo.img
 
-	rsync -Pa $(dirname $(dirname $(realpath $0)) )/rootfs.img $KERNEL_OUT_DIR/flashZip/anykernel/ubports/
-	rsync -Pa $(dirname $(dirname $(realpath $0)) )/system.img $KERNEL_OUT_DIR/flashZip/anykernel/ubports/
 
 	cd $KERNEL_OUT_DIR/flashZip/anykernel
 	7z a $ZIPNAME *
@@ -102,7 +100,7 @@ EXPORT_VARS()
 {
 	export ARCH=arm64
 	export CROSS_COMPILE=$(dirname $(dirname $(realpath $0)) )/toolchain/bin/aarch64-linux-gnu-
-	export KBUILD_BUILD_USER=arpio
+	export KBUILD_BUILD_USER=Johnnyhandsome69
 	export KBUILD_BUILD_HOST=workstation
 }
 

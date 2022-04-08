@@ -36,10 +36,11 @@
 #include "secgpio_dvs.h"
 #endif
 
+#ifdef CONFIG_SENSORS_ET5XX
 #if defined(ENABLE_SENSORS_FPRINT_SECURE)
 extern int fps_resume_set(void);
 #endif
-
+#endif
 /* list of all possible config options supported */
 static struct pin_config {
 	const char *property;
