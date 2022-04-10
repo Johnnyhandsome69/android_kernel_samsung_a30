@@ -87,10 +87,9 @@ PRINT_BUILD_TIME(){
 CREATE_ZIP(){
 	PRINT_OUT "Create ZIP file to flash in TWRP"
 	
-	cp -rf $KERNEL_SRC_DIR/flashZip $KERNEL_OUT_DIR/flashZip
-	cp -f $KERNEL_OUT_DIR/arch/arm64/boot/Image $KERNEL_OUT_DIR/flashZip/anykernel/Image
-	cp -f $HOME/dtbo.img $KERNEL_OUT_DIR/flashZip/anykernel/dtbo.img
-
+	rsync -Pa $KERNEL_SRC_DIR/flashZip $KERNEL_OUT_DIR/
+	rsync -Pa $KERNEL_OUT_DIR/arch/arm64/boot/Image $KERNEL_OUT_DIR/flashZip/anykernel/
+	rsync -Pa $KERNEL_OUT_DIR/arch/arm64/boot/dtbo.img $KERNEL_OUT_DIR/flashZip/anykernel/
 
 	cd $KERNEL_OUT_DIR/flashZip/anykernel
 	7z a $ZIPNAME *
