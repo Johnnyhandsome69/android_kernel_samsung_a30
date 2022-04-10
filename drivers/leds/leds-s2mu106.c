@@ -1058,7 +1058,6 @@ static DEVICE_ATTR(rear_torch_flash, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH,
 
 int create_flash_sysfs(void)
 {
-#ifdef CONFIG_VIDEO_EXYNOS_FIMC_IS2
 	int err = -ENODEV;
 
 	if (IS_ERR_OR_NULL(camera_class)) {
@@ -1081,7 +1080,6 @@ int create_flash_sysfs(void)
 		pr_err("flash_sysfs: failed to create device file, %s\n",
 				dev_attr_rear_torch_flash.attr.name);
 	}
-#endif
 	return 0;
 }
 
@@ -1167,10 +1165,8 @@ static int s2mu106_led_remove(struct platform_device *pdev)
 {
 	device_remove_file(flash_dev, &dev_attr_rear_flash);
 	device_remove_file(flash_dev, &dev_attr_rear_torch_flash);
-#ifdef CONFIG_VIDEO_EXYNOS_FIMC_IS2
 	device_destroy(camera_class, 0);
 	class_destroy(camera_class);
-#endif
 	mutex_destroy(&g_fled_data->lock);
 	return 0;
 }
