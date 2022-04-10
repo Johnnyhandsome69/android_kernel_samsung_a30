@@ -16,6 +16,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+export PKG_CONFIG_PATH='/home/justmonika/Qt5.12.12/5.12.12/gcc_64/lib/pkgconfig'
+export ANDROID_MAJOR_VERSION=r
+
 KERNEL_SRC_DIR=$(pwd)
 KERNEL_OUT_DIR=$KERNEL_SRC_DIR/.out
 

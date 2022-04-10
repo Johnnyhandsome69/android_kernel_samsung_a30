@@ -1347,7 +1347,6 @@ static struct binder_node *binder_init_node_ilocked(
 		FLAT_BINDER_FLAG_SCHED_POLICY_SHIFT;
 	node->min_priority = to_kernel_prio(node->sched_policy, priority);
 	node->accept_fds = !!(flags & FLAT_BINDER_FLAG_ACCEPTS_FDS);
-	node->txn_security_ctx = !!(flags & FLAT_BINDER_FLAG_TXN_SECURITY_CTX);
 	node->inherit_rt = !!(flags & FLAT_BINDER_FLAG_INHERIT_RT);
 	spin_lock_init(&node->lock);
 	INIT_LIST_HEAD(&node->work.entry);
@@ -2101,18 +2100,8 @@ static struct binder_thread *binder_get_txn_from_and_acq_inner(
 
 static void binder_free_transaction(struct binder_transaction *t)
 {
-	struct binder_proc *target_proc = t->to_proc;
-
-	if (target_proc) {
-		binder_inner_proc_lock(target_proc);
-		if (t->buffer)
-			t->buffer->transaction = NULL;
-		binder_inner_proc_unlock(target_proc);
-	}
-	/*
-	 * If the transaction has no target_proc, then
-	 * t->buffer->transaction has already been cleared.
-	 */
+	if (t->buffer)	
+		t->buffer->transaction = NULL;
 	kfree(t);
 	binder_stats_deleted(BINDER_STAT_TRANSACTION);
 }
@@ -3301,11 +3290,9 @@ static void binder_transaction(struct binder_proc *proc,
 		return_error_line = __LINE__;
 		goto err_bad_offset;
 	}
-	off_start_offset = ALIGN(tr->data_size, sizeof(void *));
-	buffer_offset = off_start_offset;
-	off_end_offset = off_start_offset + tr->offsets_size;
-	sg_buf_offset = ALIGN(off_end_offset, sizeof(void *));
-	sg_buf_end_offset = sg_buf_offset + extra_buffers_size;
+	off_end = (void *)off_start + tr->offsets_size;
+	sg_bufp = (u8 *)(PTR_ALIGN(off_end, sizeof(void *)));
+	sg_buf_end = sg_bufp + extra_buffers_size;
 	off_min = 0;
 	for (; offp < off_end; offp++) {
 		struct binder_object_header *hdr;
@@ -4396,15 +4383,16 @@ retry:
 		if (t_from) {
 			struct task_struct *sender = t_from->proc->tsk;
 
-			tr.sender_pid = task_tgid_nr_ns(sender,
-							task_active_pid_ns(current));
+			tr.sender_pid = task_tgid_nr_ns(sender, task_active_pid_ns(current));
 		} else {
 			tr.sender_pid = 0;
 		}
 
 		tr.data_size = t->buffer->data_size;
 		tr.offsets_size = t->buffer->offsets_size;
-		tr.data.ptr.buffer = (uintptr_t)t->buffer->user_data;
+		tr.data.ptr.buffer = (binder_uintptr_t)
+			((uintptr_t)t->buffer->data +
+			binder_alloc_get_user_buffer_offset(&proc->alloc));
 		tr.data.ptr.offsets = tr.data.ptr.buffer +
 					ALIGN(t->buffer->data_size,
 					    sizeof(void *));
