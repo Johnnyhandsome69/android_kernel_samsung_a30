@@ -89,7 +89,6 @@ CREATE_ZIP(){
 	
 	rsync -Pa $KERNEL_SRC_DIR/flashZip $KERNEL_OUT_DIR/
 	rsync -Pa $KERNEL_OUT_DIR/arch/arm64/boot/Image $KERNEL_OUT_DIR/flashZip/anykernel/
-	rsync -Pa $KERNEL_OUT_DIR/arch/arm64/boot/dtbo.img $KERNEL_OUT_DIR/flashZip/anykernel/
 
 	cd $KERNEL_OUT_DIR/flashZip/anykernel
 	7z a $ZIPNAME *

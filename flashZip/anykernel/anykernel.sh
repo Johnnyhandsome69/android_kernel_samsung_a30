@@ -19,7 +19,6 @@ supported.versions=
 
 # shell variables
 block=/dev/block/platform/13500000.dwmmc0/by-name/boot;
-dtboblock=/dev/block/platform/13500000.dwmmc0/by-name/dtbo;
 is_slot_device=0;
 ramdisk_compression=auto;
 
